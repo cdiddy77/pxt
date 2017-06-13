@@ -270,6 +270,14 @@ namespace pxsim {
                 }))
         }
 
+        runFiberSync(a: RefAction, resolve: (thenableOrResult?: any) => void, arg0?: any, arg1?: any, arg2?: any) {
+            incr(a);
+            runtime = this;
+            this.setupTop(resolve);
+            pxtcore.runAction3(a, arg0, arg1, arg2);
+            decr(a);
+        }
+
         // communication
         static messagePosted: (data: SimulatorMessage) => void;
         static postMessage(data: SimulatorMessage) {
