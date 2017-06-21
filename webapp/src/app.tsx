@@ -298,6 +298,8 @@ export class ProjectView
                                 || simulator.driver.state == pxsim.SimulatorState.Unloaded)) {
                             if (this.editor == this.blocksEditor) this.autoRunBlocksSimulator();
                             else this.autoRunSimulator();
+                        } else if (output) {
+                            console.warn('not running simulator:', output.content);
                         }
                     }
                 });
@@ -488,7 +490,7 @@ export class ProjectView
         if (step > -1) {
             let tutorialOptions = this.state.tutorialOptions;
             tutorialOptions.tutorialStep = step;
-            this.setState({tutorialOptions: tutorialOptions});
+            this.setState({ tutorialOptions: tutorialOptions });
             const fullscreen = tutorialOptions.tutorialStepInfo[step].fullscreen;
             if (fullscreen) this.showTutorialHint();
             else tutorial.TutorialContent.refresh();
@@ -1641,7 +1643,7 @@ ${compileService && compileService.githubCorePackage && compileService.gittag ? 
                                         : <span className="name">{targetTheme.organization}</span>}
                                     {targetTheme.organizationLogo ? (<img className='ui mini image portrait only' src={Util.toDataUri(targetTheme.organizationLogo) } alt={`${targetTheme.organization} Logo`}/>) : null}
                                 </a> : undefined }
-                                {betaUrl ? <a href={`${betaUrl}`} className="ui red mini corner top left attached label betalabel">{lf("Beta")}</a> : undefined }
+                                {betaUrl ? <a href={`${betaUrl}`} className="ui red mini corner top left attached label betalabel">{lf("Beta") }</a> : undefined }
                             </div>
                         </div>
                     </div> }
@@ -1695,7 +1697,7 @@ ${compileService && compileService.githubCorePackage && compileService.gittag ? 
                     {targetTheme.organizationUrl && targetTheme.organization ? <a className="item" target="_blank" href={targetTheme.organizationUrl}>{targetTheme.organization}</a> : undefined}
                     <a target="_blank" className="item" href={targetTheme.termsOfUseUrl}>{lf("Terms of Use") }</a>
                     <a target="_blank" className="item" href={targetTheme.privacyUrl}>{lf("Privacy") }</a>
-                    <span className="item"><a className="ui thin portrait only" title={compileTooltip} onClick={() => this.compile() }><i className={`icon ${pxt.appTarget.appTheme.downloadIcon  || 'download'}`}/>{ pxt.appTarget.appTheme.useUploadMessage ? lf("Upload") : lf("Download") }</a></span>
+                    <span className="item"><a className="ui thin portrait only" title={compileTooltip} onClick={() => this.compile() }><i className={`icon ${pxt.appTarget.appTheme.downloadIcon || 'download'}`}/>{ pxt.appTarget.appTheme.useUploadMessage ? lf("Upload") : lf("Download") }</a></span>
                 </div> : undefined}
                 {cookieConsented ? undefined : <div id='cookiemsg' className="ui teal inverted black segment">
                     <button arial-label={lf("Ok") } className="ui right floated icon button clear inverted" onClick={consentCookie}>
