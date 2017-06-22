@@ -477,7 +477,7 @@ namespace pxt.blocks {
 
     function getConcreteType(point: Point, found: Point[] = []) {
         const t = find(point)
-        if (found.indexOf(t)  === -1) {
+        if (found.indexOf(t) === -1) {
             found.push(t);
             if (!t.type || t.type === "Array") {
                 if (t.parentType) {
@@ -677,7 +677,7 @@ namespace pxt.blocks {
         const listExpr = compileExpression(e, listBlock, comments);
         const index = compileExpression(e, getInputTargetBlock(b, "INDEX"), comments);
         const value = compileExpression(e, getInputTargetBlock(b, "VALUE"), comments);
-        const res =  mkGroup([listExpr, mkText("["), index, mkText("] = "), value]);
+        const res = mkGroup([listExpr, mkText("["), index, mkText("] = "), value]);
 
         return listBlock.type === "lists_create_with" ? prefixWithSemicolon(res) : res;
 
@@ -967,7 +967,7 @@ namespace pxt.blocks {
     function compileForever(e: Environment, b: B.Block): JsNode {
         let bBody = getInputTargetBlock(b, "HANDLER");
         let body = compileStatements(e, bBody);
-        return mkCallWithCallback(e, "basic", "forever", [], body);
+        return mkCallWithCallbacks(e, "basic", "forever", [], [body]);
     }
 
     // convert to javascript friendly name
@@ -1047,11 +1047,11 @@ namespace pxt.blocks {
     function compileCall(e: Environment, b: B.Block, comments: string[]): JsNode {
         const call = e.stdCallTable[b.type];
         if (call.imageLiteral)
-            return mkStmt(compileImage(e, b, call.imageLiteral, call.namespace, call.f, call.args.map(ar => compileArgument(e, b, ar, comments))))
+            return mkStmt(compileImage(e, b, call.imageLiteral, call.namespace, call.f, call.args.map(ar => compileArgument(e, b, ar, comments))));
         else if (call.hasHandler)
-            return compileEvent(e, b, call, eventArgs(call), call.namespace, comments)
+            return compileEvent(e, b, call, eventArgs(call), call.namespace, comments);
         else
-            return mkStmt(compileStdCall(e, b, call, comments))
+            return mkStmt(compileStdCall(e, b, call, comments));
     }
 
     function compileArgument(e: Environment, b: B.Block, p: StdArg, comments: string[], beginningOfStatement = false): JsNode {
@@ -1115,20 +1115,24 @@ namespace pxt.blocks {
         return mkStmt(compileStdCall(e, b, f, comments))
     }
 
-    function mkCallWithCallback(e: Environment, n: string, f: string, args: JsNode[], body: JsNode, argumentDeclaration?: JsNode, isExtension = false): JsNode {
-        body.noFinalNewline = true
-        let callback: JsNode;
-        if (argumentDeclaration) {
-            callback = mkGroup([argumentDeclaration, body]);
-        }
-        else {
-            callback = mkGroup([mkText("() =>"), body]);
+    function mkCallWithCallbacks(e: Environment, n: string, f: string, args: JsNode[], bodies: JsNode[], argumentDeclaration?: JsNode, isExtension = false): JsNode {
+        // bodies[bodies.length - 1].noFinalNewline = true;
+        let callbacks: JsNode[] = [];
+        for (let i = 0; i < bodies.length; i++) {
+            let body = bodies[i];
+            body.noFinalNewline = true;
+            if (argumentDeclaration) {
+                callbacks.push(mkGroup([argumentDeclaration, body]));
+            }
+            else {
+                callbacks.push(mkGroup([mkText("() =>"), body]));
+            }
         }
 
         if (isExtension)
-            return mkStmt(H.extensionCall(f, args.concat([callback]), false));
+            return mkStmt(H.extensionCall(f, args.concat(callbacks), false));
         else
-            return mkStmt(H.namespaceCall(n, f, args.concat([callback]), false));
+            return mkStmt(H.namespaceCall(n, f, args.concat(callbacks), false));
     }
 
     function compileArg(e: Environment, b: B.Block, arg: string, comments: string[]): JsNode {
@@ -1151,15 +1155,22 @@ namespace pxt.blocks {
 
     function compileEvent(e: Environment, b: B.Block, stdfun: StdFunc, args: string[], ns: string, comments: string[]): JsNode {
         const compiledArgs: JsNode[] = args.map(arg => compileArg(e, b, arg, comments));
-        const bBody = getInputTargetBlock(b, "HANDLER");
-        const body = compileStatements(e, bBody);
+
+        let symbolInfo = pxt.blocks.blockSymbol(b.type);
+
+        const bodies = symbolInfo.parameters ? symbolInfo.parameters.filter(pr => pr.type == "() => void") : [];
+        let bodyStmts: JsNode[] = [];
+        for (let i = 0; i < bodies.length; i++) {
+            const body = bodies[i];
+            const bBody = getInputTargetBlock(b, "HANDLER" + body.name);
+            bodyStmts.push(compileStatements(e, bBody));
+        }
         let argumentDeclaration: JsNode;
 
         if (isMutatingBlock(b) && b.mutation.getMutationType() === MutatorTypes.ObjectDestructuringMutator) {
             argumentDeclaration = b.mutation.compileMutation(e, comments);
         }
-
-        return mkCallWithCallback(e, ns, stdfun.f, compiledArgs, body, argumentDeclaration, stdfun.isExtensionMethod);
+        return mkCallWithCallbacks(e, ns, stdfun.f, compiledArgs, bodyStmts, argumentDeclaration, stdfun.isExtensionMethod);
     }
 
     function isMutatingBlock(b: B.Block): b is MutatingBlock {

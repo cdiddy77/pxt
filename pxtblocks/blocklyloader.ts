@@ -710,10 +710,14 @@ namespace pxt.blocks {
             })
         }
 
-        const body = fn.parameters ? fn.parameters.filter(pr => pr.type == "() => void")[0] : undefined;
-        if (body) {
-            block.appendStatementInput("HANDLER")
-                .setCheck("null");
+        const bodies = fn.parameters ? fn.parameters.filter(pr => pr.type == "() => void") : [];
+        for (let i = 0; i < bodies.length; i++) {
+            const body = bodies[i];
+            const input = block.appendStatementInput("HANDLER" + body.name);
+            if (bodies.length > 1)
+                input.appendField(body.name);
+
+            input.setCheck("null");
         }
 
         if (fn.attributes.imageLiteral) {
@@ -741,8 +745,8 @@ namespace pxt.blocks {
         // hook up/down if return value is void
         const hasHandlers = hasArrowFunction(fn);
         const isStatement = fn.attributes.handlerStmt;
-        block.setPreviousStatement((!hasHandlers||isStatement) && fn.retType == "void");
-        block.setNextStatement((!hasHandlers||isStatement) && fn.retType == "void");
+        block.setPreviousStatement((!hasHandlers || isStatement) && fn.retType == "void");
+        block.setNextStatement((!hasHandlers || isStatement) && fn.retType == "void");
 
         block.setTooltip(fn.attributes.jsDoc);
     }
