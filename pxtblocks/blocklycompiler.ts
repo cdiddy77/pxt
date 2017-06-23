@@ -1160,10 +1160,14 @@ namespace pxt.blocks {
 
         const bodies = symbolInfo.parameters ? symbolInfo.parameters.filter(pr => pr.type == "() => void") : [];
         let bodyStmts: JsNode[] = [];
-        for (let i = 0; i < bodies.length; i++) {
-            const body = bodies[i];
-            const bBody = getInputTargetBlock(b, "HANDLER" + body.name);
-            bodyStmts.push(compileStatements(e, bBody));
+        if (bodies.length > 0) {
+            for (let i = 0; i < bodies.length; i++) {
+                const body = bodies[i];
+                const bBody = getInputTargetBlock(b, "HANDLER" + body.name);
+                bodyStmts.push(compileStatements(e, bBody));
+            }
+        } else {
+            bodyStmts.push(compileStatements(e, getInputTargetBlock(b, "HANDLER")));
         }
         let argumentDeclaration: JsNode;
 
