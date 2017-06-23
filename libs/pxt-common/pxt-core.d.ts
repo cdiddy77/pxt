@@ -268,10 +268,86 @@ declare namespace Math {
     function pow(x: number, y: number): number;
 
     /**
-     * Returns a pseudorandom number between 0 and `max`.
+     * Returns a pseudorandom number between 0 and 1.
      */
     //% shim=Math_::random
-    function random(max: number): number;
+    //% helpUrl="/reference/math/random"
+    function random(): number;
+
+    /**
+     * Returns a pseudorandom number between min and max included. 
+     * If both numbers are integral, the result is integral.
+     * @param min the lower inclusive bound, eg: 0
+     * @param max the upper inclusive bound, eg: 10
+     */
+    //% blockId="device_random" block="pick random %min|to %limit"
+    //% helpUrl="/reference/math/random-range"
+    //% shim=Math_::randomRange
+    function randomRange(min: number, max: number): number;
+
+    /**
+     * Returns the natural logarithm (base e) of a number.
+     * @param x A number
+     */
+    //% shim=Math_::log
+    function log(x: number): number;
+
+    /**
+     * Returns returns ``e^x``.
+     * @param x A number
+     */
+    //% shim=Math_::exp
+    function exp(x: number): number;
+
+    /**
+     * Returns the sine of a number.
+     * @param x An angle in radians
+     */
+    //% shim=Math_::sin
+    function sin(x: number): number;
+
+    /**
+     * Returns the cosine of a number.
+     * @param x An angle in radians
+     */
+    //% shim=Math_::cos
+    function cos(x: number): number;
+
+    /**
+     * Returns the tangent of a number.
+     * @param x An angle in radians
+     */
+    //% shim=Math_::tan
+    function tan(x: number): number;
+
+    /**
+     * Returns the arcsine (in radians) of a number
+     * @param x A number
+     */
+    //% shim=Math_::asin
+    function asin(x: number): number;
+
+    /**
+     * Returns the arccosine (in radians) of a number
+     * @param x A number
+     */
+    //% shim=Math_::acos
+    function acos(x: number): number;
+
+    /**
+     * Returns the arctangent (in radians) of a number
+     * @param x A number
+     */
+    //% shim=Math_::atan
+    function atan(x: number): number;
+
+    /**
+     * Returns the arctangent of the quotient of its arguments.
+     * @param y A number
+     * @param x A number
+     */
+    //% shim=Math_::atan2
+    function atan2(y: number, x: number): number;
 
     /**
      * Returns the square root of a number.

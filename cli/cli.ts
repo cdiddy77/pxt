@@ -880,6 +880,7 @@ function uploadCoreAsync(opts: UploadOptions) {
         "/doccdn/": "@commitCdnUrl@",
         "/sim/": "@commitCdnUrl@",
         "/blb/": "@blobCdnUrl@",
+        "@timestamp@": "",
         "data-manifest=\"\"": "@manifest@",
         "var pxtConfig = null": "var pxtConfig = @cfg@",
         "@defaultLocaleStrings@": defaultLocale ? "@commitCdnUrl@" + "locales/" + defaultLocale + "/strings.json" : "",
@@ -915,8 +916,10 @@ function uploadCoreAsync(opts: UploadOptions) {
             "/doccdn/": opts.localDir,
             "/sim/": opts.localDir,
             "/blb/": opts.localDir,
-            "@workerjs@": `${opts.localDir}worker.js\n# ver ${new Date().toString()}`,
-            //"data-manifest=\"\"": `manifest="${opts.localDir}release.manifest"`,
+            "@monacoworkerjs@": `${opts.localDir}monacoworker.js`,
+            "@workerjs@": `${opts.localDir}worker.js`,
+            "@timestamp@": `# ver ${new Date().toString()}`,
+            "data-manifest=\"\"": `manifest="${opts.localDir}release.manifest"`,
             "var pxtConfig = null": "var pxtConfig = " + JSON.stringify(cfg, null, 4),
             "@defaultLocaleStrings@": "",
             "@cachedHexFiles@": "",
@@ -1220,7 +1223,7 @@ export function buildTargetAsync(): Promise<void> {
     if (!inCommonPkg("built/common-sim.js") || !inCommonPkg("built/common-sim.d.ts")) {
         initPromise = buildCommonSimAsync();
     }
-    else  {
+    else {
         initPromise = Promise.resolve();
     }
 
@@ -1772,6 +1775,13 @@ function buildAndWatchTargetAsync(includeSourceMaps = false) {
 
     const hasCommonPackages = fs.existsSync(path.resolve("node_modules/pxt-common-packages"));
 
+    let simDirectories: string[] = [];
+    if (hasCommonPackages) {
+        const libsdir = path.resolve("node_modules/pxt-common-packages/libs");
+        simDirectories = fs.readdirSync(libsdir).map(fn => path.join(libsdir, fn, "sim"));
+        simDirectories = simDirectories.filter(fn => fs.existsSync(fn));
+    }
+
     return buildAndWatchAsync(() => buildPxtAsync(includeSourceMaps)
         .then(buildCommonSimAsync, e => buildFailed("common sim build failed: " + e.message, e))
         .then(() => buildTargetAsync().then(r => { }, e => {
@@ -1781,9 +1791,9 @@ function buildAndWatchTargetAsync(includeSourceMaps = false) {
             buildFailed("target build failed: " + e.message, e)
         }))
         .then(() => {
-            const toWatch = [path.resolve("node_modules/pxt-core")].concat(dirsToWatch)
+            let toWatch = [path.resolve("node_modules/pxt-core")].concat(dirsToWatch)
             if (hasCommonPackages) {
-                toWatch.push(path.resolve("node_modules/pxt-common-packages"))
+                toWatch = toWatch.concat(simDirectories);
             }
             return toWatch;
         }));
@@ -1941,9 +1951,9 @@ class SnippetHost implements pxt.Host {
                         "pxt-core.d.ts",
                         "pxt-helpers.ts"
                     ] : [
-                        "main.blocks", //TODO: Probably don't want this
-                        "main.ts",
-                    ]
+                            "main.blocks", //TODO: Probably don't want this
+                            "main.ts",
+                        ]
                 })
             }
             else if (filename == "main.ts") {
@@ -1952,26 +1962,33 @@ class SnippetHost implements pxt.Host {
         } else if (pxt.appTarget.bundledpkgs[module.id] && filename === pxt.CONFIG_NAME) {
             return pxt.appTarget.bundledpkgs[module.id][pxt.CONFIG_NAME];
         } else {
-            let p0 = path.join(module.id, filename);
-            let p1 = path.join('libs', module.id, filename)
-            let p2 = path.join('libs', module.id, 'built', filename)
+            let ps = [
+                path.join(module.id, filename),
+                path.join('libs', module.id, filename),
+                path.join('libs', module.id, 'built', filename),
+            ];
 
             let contents: string = null
-
-            try {
-                contents = fs.readFileSync(p0, 'utf8')
-            }
-            catch (e) {
+            if (!ps.some(p => {
                 try {
-                    contents = fs.readFileSync(p1, 'utf8')
+                    contents = fs.readFileSync(p, 'utf8')
+                    return true;
                 }
                 catch (e) {
-                    //console.log(e)
-                    try {
-                        contents = fs.readFileSync(p2, 'utf8')
-                    }
-                    catch (e) {
-                        //console.log(e)
+                }
+                return false;
+            })) {
+                // try additional package location
+                if (pxt.appTarget.bundledpkgs[module.id]) {
+                    const modpkg = JSON.parse(pxt.appTarget.bundledpkgs[module.id][pxt.CONFIG_NAME]) as pxt.PackageConfig;
+                    if (modpkg.additionalFilePath) {
+                        try {
+                            const ad = path.join(modpkg.additionalFilePath.replace('../../', ''), filename);
+                            pxt.debug(ad)
+                            contents = fs.readFileSync(ad, 'utf8')
+                        }
+                        catch (e) {
+                        }
                     }
                 }
             }
@@ -1995,6 +2012,7 @@ class SnippetHost implements pxt.Host {
             }
         }
 
+        pxt.debug(`unresolved file ${module.id}/${filename}`)
         return ""
     }
 
@@ -2012,8 +2030,7 @@ class SnippetHost implements pxt.Host {
     }
 
     getHexInfoAsync(extInfo: pxtc.ExtensionInfo): Promise<pxtc.HexInfo> {
-        //console.log(`getHexInfoAsync(${extInfo})`);
-        return Promise.resolve<any>(null)
+        return pxt.hex.getHexInfoAsync(this, extInfo)
     }
 
     cacheStoreAsync(id: string, val: string): Promise<void> {
@@ -3360,8 +3377,19 @@ function internalUploadTargetTranslationsAsync(uploadDocs: boolean) {
         }
         return uploadDocsTranslationsAsync("docs", crowdinDir, cred.branch, cred.prj, cred.key)
             .then(() => uploadDocsTranslationsAsync("common-docs", crowdinDir, cred.branch, cred.prj, cred.key))
-    } else return uploadBundledTranslationsAsync(crowdinDir, cred.branch, cred.prj, cred.key)
-        .then(() => uploadDocs ? uploadDocsTranslationsAsync("docs", crowdinDir, cred.branch, cred.prj, cred.key) : Promise.resolve());
+    } else {
+        return uploadBundledTranslationsAsync(crowdinDir, cred.branch, cred.prj, cred.key)
+            .then(() => uploadDocs
+                ? uploadDocsTranslationsAsync("docs", crowdinDir, cred.branch, cred.prj, cred.key)
+                    // scan for docs in bundled packages
+                    .then(() => Promise.all(pxt.appTarget.bundleddirs
+                        // there must be a folder under .../docs
+                        .filter(pkgDir => nodeutil.existsDirSync(path.join(pkgDir, "docs")))
+                        // upload to crowdin
+                        .map(pkgDir => uploadDocsTranslationsAsync(path.join(pkgDir, "docs"), crowdinDir, cred.branch, cred.prj, cred.key)
+                    )).then(() => { }))
+                : Promise.resolve());
+    }
 }
 
 function uploadDocsTranslationsAsync(srcDir: string, crowdinDir: string, branch: string, prj: string, key: string): Promise<void> {
@@ -4470,6 +4498,8 @@ export function mainCli(targetDir: string, args: string[] = process.argv.slice(2
     pxt.log(`Using target PXT/${trg.id} with build engine ${compileId}`)
     pxt.log(`  Target dir:   ${nodeutil.targetDir}`)
     pxt.log(`  PXT Core dir: ${nodeutil.pxtCoreDir}`)
+
+    pxt.HF2.enableLog()
 
     if (compileId != "none") {
         build.thisBuild = build.buildEngines[compileId]

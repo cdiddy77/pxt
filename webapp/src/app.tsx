@@ -30,6 +30,8 @@ import * as scriptsearch from "./scriptsearch";
 import * as projects from "./projects";
 import * as sounds from "./sounds";
 import * as make from "./make";
+import * as baseToolbox from "./toolbox";
+import * as monacoToolbox from "./monacoSnippets"
 
 import * as monaco from "./monaco"
 import * as pxtjson from "./pxtjson"
@@ -499,6 +501,9 @@ export class ProjectView
 
     handleMessage(msg: pxsim.SimulatorMessage) {
         switch (msg.type) {
+            case "popoutcomplete":
+                this.setState({sideDocsCollapsed: true, sideDocsLoadUrl: ''})
+                break;
             case "tutorial":
                 let t = msg as pxsim.TutorialMessage;
                 switch (t.subtype) {
@@ -1547,7 +1552,8 @@ ${compileService && compileService.githubCorePackage && compileService.gittag ? 
         const { hideMenuBar, hideEditorToolbar} = targetTheme;
         const isHeadless = simOpts.headless;
         const cookieKey = "cookieconsent"
-        const cookieConsented = targetTheme.hideCookieNotice || electron.isElectron || pxt.winrt.isWinRT() || !!pxt.storage.getLocal(cookieKey);
+        const cookieConsented = targetTheme.hideCookieNotice || electron.isElectron || pxt.winrt.isWinRT() || !!pxt.storage.getLocal(cookieKey) 
+                                || sandbox;
         const simActive = this.state.embedSimView;
         const blockActive = this.isBlocksActive();
         const javascriptActive = this.isJavaScriptActive();
@@ -2054,11 +2060,12 @@ function initExtensionsAsync(): Promise<void> {
     return pxt.BrowserUtils.loadScriptAsync(pxt.webConfig.commitCdnUrl + "editor.js")
         .then(() => pxt.editor.initExtensionsAsync(opts))
         .then(res => {
-            if (res.hexFileImporters)
+            if (res.hexFileImporters) {
                 res.hexFileImporters.forEach(fi => {
                     pxt.debug(`\tadded hex importer ${fi.id}`);
                     theEditor.hexFileImporters.push(fi);
                 });
+            }
             if (res.deployCoreAsync) {
                 pxt.debug(`\tadded custom deploy core async`);
                 pxt.commands.deployCoreAsync = res.deployCoreAsync;
@@ -2066,10 +2073,19 @@ function initExtensionsAsync(): Promise<void> {
             if (res.beforeCompile) {
                 theEditor.beforeCompile = res.beforeCompile;
             }
-            if (res.fieldEditors)
+            if (res.fieldEditors) {
                 res.fieldEditors.forEach(fi => {
                     pxt.blocks.registerFieldEditor(fi.selector, fi.editor, fi.validator);
                 })
+            }
+            if (res.toolboxOptions) {
+                if (res.toolboxOptions.blocklyXml) {
+                    baseToolbox.overrideBaseToolbox(res.toolboxOptions.blocklyXml);
+                }
+                if (res.toolboxOptions.monacoToolbox) {
+                    monacoToolbox.overrideToolbox(res.toolboxOptions.monacoToolbox);
+                }
+            }
         });
 }
 
@@ -2198,7 +2214,7 @@ $(document).ready(() => {
                 window.parent.postMessage(ev.data, "*");
         }
 
-        if (m.type == "tutorial") {
+        if (m.type == "tutorial" || m.type == "popoutcomplete") {
             if (theEditor && theEditor.editor)
                 theEditor.handleMessage(m);
         }

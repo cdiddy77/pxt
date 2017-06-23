@@ -368,6 +368,34 @@ export const arrays: BuiltinCategoryDefinition = {
     }
 }
 
+export const functions: BuiltinCategoryDefinition = {
+    name: lf("{id:category}Functions"),
+    nameid: 'functions',
+    blocks: [
+        {
+            name: "function doSomething",
+            snippet: `function doSomething() {\n\n}`,
+            attributes: {
+                jsDoc: lf("Define a function")
+            }
+        },
+        {
+            name: "doSomething",
+            snippet: `doSomething()`,
+            attributes: {
+                jsDoc: lf("Call a function")
+            }
+        },
+    ],
+    attributes: {
+        advanced: true,
+        callingConvention: ts.pxtc.ir.CallingConvention.Plain,
+        color: pxt.blocks.blockColors["functions"].toString(),
+        icon: "function",
+        paramDefl: {}
+    }
+};
+
 export function getBuiltinCategory(ns: string) {
         switch (ns) {
             case loops.nameid: return loops;
@@ -376,6 +404,7 @@ export function getBuiltinCategory(ns: string) {
             case maths.nameid: return maths;
             case text.nameid: return text;
             case arrays.nameid: return arrays;
+            case functions.nameid: return functions;
         }
     return undefined;
 }
@@ -388,7 +417,54 @@ export function isBuiltin(ns: string) {
         case maths.nameid:
         case text.nameid:
         case arrays.nameid:
+        case functions.nameid:
             return true;
     }
     return false;
+}
+
+export function overrideCategory(ns: string, def: pxt.editor.MonacoToolboxCategoryDefinition) {
+    const cat = getBuiltinCategory(ns);
+    if (def && cat) {
+        if (def.name) {
+            cat.name = def.name;
+        }
+
+        if (def.weight !== undefined) {
+            cat.attributes.weight = def.weight;
+        }
+
+        if (def.blocks) {
+            let currentWeight = 100;
+            cat.blocks = def.blocks.map((b, i) => {
+                if (b.weight) {
+                    currentWeight = b.weight;
+                }
+                else {
+                    currentWeight --;
+                }
+
+                return {
+                    name: b.name,
+                    snippet: b.snippet,
+                    snippetOnly: b.snippetOnly,
+                    attributes: {
+                        weight: currentWeight,
+                        advanced: b.advanced,
+                        jsDoc: b.jsDoc,
+                    },
+                    noNamespace: true
+                }
+            });
+        }
+    }
+}
+
+export function overrideToolbox(def: pxt.editor.MonacoToolboxDefinition) {
+    overrideCategory(loops.nameid, def.loops);
+    overrideCategory(logic.nameid, def.logic);
+    overrideCategory(variables.nameid, def.variables);
+    overrideCategory(maths.nameid, def.maths);
+    overrideCategory(text.nameid, def.text);
+    overrideCategory(arrays.nameid, def.arrays);
 }

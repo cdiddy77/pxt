@@ -8,7 +8,7 @@ import * as srceditor from "./srceditor"
 import * as compiler from "./compiler"
 import * as sui from "./sui";
 import * as data from "./data";
-import defaultToolbox from "./toolbox"
+import * as baseToolbox from "./toolbox";
 
 import CategoryMode = pxt.blocks.CategoryMode;
 import Util = pxt.Util;
@@ -190,7 +190,12 @@ export class Editor extends srceditor.Editor {
         }
         else {
             // Otherwise translate the blocks so that they are positioned on the top left
-            this.editor.getTopBlocks(false).forEach(b => b.moveBy(-minX, -minY))
+            this.editor.getTopBlocks(false).forEach(b => b.moveBy(-minX, -minY));
+            this.editor.scrollX = 10;
+            this.editor.scrollY = 10;
+
+            // Forces scroll to take effect
+            this.editor.resizeContents();
         }
     }
 
@@ -636,7 +641,7 @@ export class Editor extends srceditor.Editor {
 
     private getDefaultToolbox(showCategories = this.showToolboxCategories): HTMLElement {
         return showCategories !== CategoryMode.None ?
-            defaultToolbox.documentElement
+            baseToolbox.getBaseToolboxDom().documentElement
             : new DOMParser().parseFromString(`<xml id="blocklyToolboxDefinition" style="display: none"></xml>`, "text/xml").documentElement;
     }
 
