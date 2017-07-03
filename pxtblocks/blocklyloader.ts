@@ -538,8 +538,15 @@ namespace pxt.blocks {
         if (right)
             i.setAlign(Blockly.ALIGN_RIGHT)
         // ignore generic types
-        if (type && type != "T")
-            i.setCheck(type);
+        if (type && type != "T") {
+            // ChParker HACK : fields which take array types need to be able to accept 
+            // generic arrays.
+            if (fn.attributes.acceptArrays && type.length > 2 && type.substr(type.length - 2) == '[]') {
+                i.setCheck(['Array', type]);
+            } else {
+                i.setCheck(type);
+            }
+        }
         return i;
     }
 
@@ -1063,8 +1070,8 @@ namespace pxt.blocks {
 
         function initBuiltinCategoryXml(name: string, remove: boolean) {
             if (remove) {
-                 removeCategory(tb, name);
-                 return;
+                removeCategory(tb, name);
+                return;
             }
 
             const cat = categoryElement(tb, name);
@@ -2313,7 +2320,7 @@ namespace pxt.blocks {
              * @return {string} Procedure name.
              * @this Blockly.Block
              */
-            getProcedureCall: function() {
+            getProcedureCall: function () {
                 // The NAME field is guaranteed to exist, null will never be returned.
                 return /** @type {string} */ (this.getFieldValue('NAME'));
             },
@@ -2324,7 +2331,7 @@ namespace pxt.blocks {
              * @param {string} newName Renamed procedure.
              * @this Blockly.Block
              */
-            renameProcedure: function(oldName: string, newName: string) {
+            renameProcedure: function (oldName: string, newName: string) {
                 if (Blockly.Names.equals(oldName, this.getProcedureCall())) {
                     this.setFieldValue(newName, 'NAME');
                 }
@@ -2335,7 +2342,7 @@ namespace pxt.blocks {
              * @param {!Blockly.Events.Abstract} event Change event.
              * @this Blockly.Block
              */
-            onchange: function(event: any) {
+            onchange: function (event: any) {
                 if (!this.workspace || this.workspace.isFlyout) {
                     // Block is deleted or is in a flyout.
                     return;
@@ -2351,33 +2358,33 @@ namespace pxt.blocks {
                         JSON.stringify((def as any).arguments_) != JSON.stringify(this.arguments_))) {
                         // The signatures don't match.
                         def = null;
-                }
-                if (!def) {
-                    Blockly.Events.setGroup(event.group);
-                    /**
-                     * Create matching definition block.
-                     * <xml>
-                     *   <block type="procedures_defreturn" x="10" y="20">
-                     *     <field name="NAME">test</field>
-                     *   </block>
-                     * </xml>
-                     */
-                    let xml = goog.dom.createDom('xml');
-                    let block = goog.dom.createDom('block');
-                    block.setAttribute('type', this.defType_);
-                    let xy = this.getRelativeToSurfaceXY();
-                    let x = xy.x + (Blockly as any).SNAP_RADIUS * (this.RTL ? -1 : 1);
-                    let y = xy.y + (Blockly as any).SNAP_RADIUS * 2;
-                    block.setAttribute('x', x);
-                    block.setAttribute('y', y);
-                    let field = goog.dom.createDom('field');
-                    field.setAttribute('name', 'NAME');
-                    field.appendChild(document.createTextNode(this.getProcedureCall()));
-                    block.appendChild(field);
-                    xml.appendChild(block);
-                    Blockly.Xml.domToWorkspace(xml, this.workspace);
-                    Blockly.Events.setGroup(false);
-                }
+                    }
+                    if (!def) {
+                        Blockly.Events.setGroup(event.group);
+                        /**
+                         * Create matching definition block.
+                         * <xml>
+                         *   <block type="procedures_defreturn" x="10" y="20">
+                         *     <field name="NAME">test</field>
+                         *   </block>
+                         * </xml>
+                         */
+                        let xml = goog.dom.createDom('xml');
+                        let block = goog.dom.createDom('block');
+                        block.setAttribute('type', this.defType_);
+                        let xy = this.getRelativeToSurfaceXY();
+                        let x = xy.x + (Blockly as any).SNAP_RADIUS * (this.RTL ? -1 : 1);
+                        let y = xy.y + (Blockly as any).SNAP_RADIUS * 2;
+                        block.setAttribute('x', x);
+                        block.setAttribute('y', y);
+                        let field = goog.dom.createDom('field');
+                        field.setAttribute('name', 'NAME');
+                        field.appendChild(document.createTextNode(this.getProcedureCall()));
+                        block.appendChild(field);
+                        xml.appendChild(block);
+                        Blockly.Xml.domToWorkspace(xml, this.workspace);
+                        Blockly.Events.setGroup(false);
+                    }
                 } else if (event.type == Blockly.Events.DELETE) {
                     // Look for the case where a procedure definition has been deleted,
                     // leaving this block (a procedure call) orphaned.  In this case, delete
@@ -2396,13 +2403,13 @@ namespace pxt.blocks {
              * @param {!Array} options List of menu options to add to.
              * @this Blockly.Block
              */
-            customContextMenu: function(options: any) {
-                let option: any = {enabled: true};
+            customContextMenu: function (options: any) {
+                let option: any = { enabled: true };
                 option.text = (Blockly as any).Msg.PROCEDURES_HIGHLIGHT_DEF;
                 let name = this.getProcedureCall();
                 let workspace = this.workspace;
-                option.callback = function() {
-                let def = Blockly.Procedures.getDefinition(name, workspace);
+                option.callback = function () {
+                    let def = Blockly.Procedures.getDefinition(name, workspace);
                     def && def.select();
                 };
                 options.push(option);
@@ -2455,9 +2462,9 @@ namespace pxt.blocks {
                 newBlock.select();
             }
 
-            workspace.registerButtonCallback('CREATE_FUNCTION', function(button) {
+            workspace.registerButtonCallback('CREATE_FUNCTION', function (button) {
                 let promptAndCheckWithAlert = (defaultName: string) => {
-                    Blockly.prompt(newFunctionTitle, defaultName, function(newFunc) {
+                    Blockly.prompt(newFunctionTitle, defaultName, function (newFunc) {
                         // Merge runs of whitespace.  Strip leading and trailing whitespace.
                         // Beyond this, all names are legal.
                         if (newFunc) {
@@ -2471,14 +2478,14 @@ namespace pxt.blocks {
                             if (workspace.variableIndexOf(newFunc) != -1) {
                                 Blockly.alert((Blockly as any).Msg.VARIABLE_ALREADY_EXISTS.replace('%1',
                                     newFunc.toLowerCase()),
-                                    function() {
+                                    function () {
                                         promptAndCheckWithAlert(newFunc);  // Recurse
                                     });
                             }
                             else if (!Blockly.Procedures.isLegalName_(newFunc, workspace)) {
                                 Blockly.alert((Blockly as any).Msg.PROCEDURE_ALREADY_EXISTS.replace('%1',
                                     newFunc.toLowerCase()),
-                                    function() {
+                                    function () {
                                         promptAndCheckWithAlert(newFunc);  // Recurse
                                     });
                             }

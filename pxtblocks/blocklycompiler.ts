@@ -1165,6 +1165,8 @@ namespace pxt.blocks {
 
         let symbolInfo = pxt.blocks.blockSymbol(b.type);
 
+        // TODO : this will work for actions with no arguments, but not for action parameters that
+        // actually take arguments
         const bodies = symbolInfo.parameters ? symbolInfo.parameters.filter(pr => pr.type == "() => void") : [];
         let bodyStmts: JsNode[] = [];
         if (bodies.length > 0) {
