@@ -10,18 +10,18 @@ import B = Blockly;
 let iface: pxt.worker.Iface
 
 namespace pxt.blocks {
-    export const reservedWords = [ "abstract", "any", "as", "break",
-    "case", "catch", "class", "continue", "const", "constructor", "debugger",
-    "declare", "default", "delete", "do", "else", "enum", "export", "extends",
-    "false", "finally", "for", "from", "function", "get", "if", "implements",
-    "import", "in", "instanceof", "interface", "is", "let", "module", "namespace",
-    "new", "null", "package", "private", "protected", "public",
-    "require", "global", "return", "set", "static", "super", "switch",
-    "symbol", "this", "throw", "true", "try", "type", "typeof", "var", "void",
-    "while", "with", "yield", "async", "await", "of",
+    export const reservedWords = ["abstract", "any", "as", "break",
+        "case", "catch", "class", "continue", "const", "constructor", "debugger",
+        "declare", "default", "delete", "do", "else", "enum", "export", "extends",
+        "false", "finally", "for", "from", "function", "get", "if", "implements",
+        "import", "in", "instanceof", "interface", "is", "let", "module", "namespace",
+        "new", "null", "package", "private", "protected", "public",
+        "require", "global", "return", "set", "static", "super", "switch",
+        "symbol", "this", "throw", "true", "try", "type", "typeof", "var", "void",
+        "while", "with", "yield", "async", "await", "of",
 
-    // PXT Specific
-    "Math"];
+        // PXT Specific
+        "Math"];
 
     export function initWorker() {
         if (!iface) {

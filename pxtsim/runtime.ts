@@ -249,6 +249,8 @@ namespace pxsim {
         currFrame: StackFrame;
         entry: LabelFn;
 
+        yieldingDisabled: boolean = false;
+
         overwriteResume: (retPC: number) => void;
         getResume: () => ResumeFn;
         run: (cb: ResumeFn) => void;
@@ -358,19 +360,21 @@ namespace pxsim {
 
             function maybeYield(s: StackFrame, pc: number, r0: any): boolean {
                 yieldSteps = yieldMaxSteps;
-                let now = Date.now()
-                if (now - lastYield >= 20) {
-                    lastYield = now
-                    s.pc = pc;
-                    s.r0 = r0;
-                    let cont = () => {
-                        if (__this.dead) return;
-                        U.assert(s.pc == pc);
-                        return loop(s)
+                if (!__this.yieldingDisabled) {
+                    let now = Date.now()
+                    if (now - lastYield >= 20) {
+                        lastYield = now
+                        s.pc = pc;
+                        s.r0 = r0;
+                        let cont = () => {
+                            if (__this.dead) return;
+                            U.assert(s.pc == pc);
+                            return loop(s)
+                        }
+                        //U.nextTick(cont)
+                        setTimeout(cont, 5)
+                        return true
                     }
-                    //U.nextTick(cont)
-                    setTimeout(cont, 5)
-                    return true
                 }
                 return false
             }
