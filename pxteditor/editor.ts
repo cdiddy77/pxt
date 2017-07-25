@@ -192,6 +192,7 @@ namespace pxt.editor {
     export interface IBlockDefinition {
         id: string;
         init: () => void;
+        compiler?: pxt.blocks.BlockCompiler;
     }
 
     export interface ExtensionOptions {

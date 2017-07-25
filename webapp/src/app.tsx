@@ -2079,7 +2079,7 @@ function initExtensionsAsync(): Promise<void> {
                 })
             }
             if (res.blockDefinitions) {
-                res.blockDefinitions.forEach(b => pxt.blocks.registerBlockDefinition(b.id, b.init));
+                res.blockDefinitions.forEach(b => pxt.blocks.registerBlockDefinition(b.id, b.init, b.compiler));
             }
             if (res.toolboxOptions) {
                 if (res.toolboxOptions.blocklyXml) {

@@ -1051,7 +1051,20 @@ namespace pxt.blocks {
         return call.args.map(ar => ar.field).filter(ar => !!ar);
     }
 
+    function getInstance(e: Environment): BlocklyCompiler {
+        return {
+            compileExpression: (block: Blockly.Block, comments: string[]) => compileExpression(e, block, comments),
+            compileStatement: (block: Blockly.Block) => compileStatementBlock(e, block),
+            compileCodeBlock: (firstBlock: Blockly.Block) => compileStatements(e, firstBlock),
+            escapeVarName: (name: string) => escapeVarName(name, e)
+        };
+    }
+
     function compileCall(e: Environment, b: B.Block, comments: string[]): JsNode {
+        if (registeredBlockCompilers[b.type]) {
+            return registeredBlockCompilers[b.type].compileBlock(b, comments, getInstance(e));
+        }
+
         const call = e.stdCallTable[b.type];
         if (call.imageLiteral)
             return mkStmt(compileImage(e, b, call.imageLiteral, call.namespace, call.f, call.args.map(ar => compileArgument(e, b, ar, comments))));
@@ -1482,6 +1495,14 @@ namespace pxt.blocks {
                 if (declarations) {
                     for (const varName in declarations) {
                         trackLocalDeclaration(escapeVarName(varName, e), declarations[varName]);
+                    }
+                }
+            }
+            else if (registeredBlockCompilers[b.type]) {
+                const declarations = registeredBlockCompilers[b.type].getDeclaredVariables(b);
+                if (declarations.length) {
+                    for (const { name, type } of declarations) {
+                        trackLocalDeclaration(escapeVarName(name, e), type);
                     }
                 }
             }

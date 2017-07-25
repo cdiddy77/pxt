@@ -16,6 +16,23 @@ namespace pxt.blocks {
         noFinalNewline?: boolean;
     }
 
+    export interface VariableBinding {
+        name: string;
+        type: string;
+    }
+    
+    export interface BlocklyCompiler {
+        compileExpression(block: Blockly.Block, comments: string[]): JsNode;
+        compileStatement(block: Blockly.Block): JsNode[];
+        compileCodeBlock(firstBlock: Blockly.Block): JsNode;
+        escapeVarName(name: string): string;
+    }
+
+    export interface BlockCompiler {
+        getDeclaredVariables(block: Blockly.Block): VariableBinding[];
+        compileBlock(block: Blockly.Block, comments: string[], compiler: BlocklyCompiler): JsNode;
+    }
+
     export enum GlueMode {
         None = 0,
         WithSpace = 1,
