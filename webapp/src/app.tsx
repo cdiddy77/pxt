@@ -2078,6 +2078,9 @@ function initExtensionsAsync(): Promise<void> {
                     pxt.blocks.registerFieldEditor(fi.selector, fi.editor, fi.validator);
                 })
             }
+            if (res.blockDefinitions) {
+                res.blockDefinitions.forEach(b => pxt.blocks.registerBlockDefinition(b.id, b.init));
+            }
             if (res.toolboxOptions) {
                 if (res.toolboxOptions.blocklyXml) {
                     baseToolbox.overrideBaseToolbox(res.toolboxOptions.blocklyXml);

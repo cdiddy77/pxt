@@ -512,14 +512,21 @@ namespace pxt.blocks {
             return false;
         }
 
-        let cachedBlock: CachedBlock = {
+        const cachedBlock: CachedBlock = {
             hash: hash,
             fn: fn,
             block: {
                 codeCard: mkCard(fn, blockXml),
-                init: function () { initBlock(this, info, fn, attrNames) }
+                init: function () { 
+                    if (fn.attributes.externallyLoadedBlock && registeredBlockDefinitions[id]){
+                        registeredBlockDefinitions[id].call(this); 
+                    }
+                    else {
+                        initBlock(this, info, fn, attrNames);
+                    }
+                }
             }
-        }
+        };
 
         cachedBlocks[id] = cachedBlock;
         Blockly.Blocks[id] = cachedBlock.block;

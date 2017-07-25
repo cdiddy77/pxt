@@ -7,6 +7,7 @@ namespace pxt.blocks {
     }
 
     let registeredFieldEditors: Map<FieldEditorOptions> = {};
+    export const registeredBlockDefinitions: Map<() => void> = {};
 
     export function initFieldEditors() {
         // Initialize PXT custom editors
@@ -45,5 +46,11 @@ namespace pxt.blocks {
         let customField = registeredFieldEditors[selector];
         let instance = new customField.field(text, params, customField.validator);
         return instance;
+    }
+
+    export function registerBlockDefinition(id: string, init: () => void) {
+        if (registeredBlockDefinitions[id] == undefined) {
+            registeredBlockDefinitions[id] = init;
+        }
     }
 }

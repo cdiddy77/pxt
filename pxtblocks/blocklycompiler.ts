@@ -1066,8 +1066,15 @@ namespace pxt.blocks {
         if (lit)
             return lit instanceof String ? H.mkStringLiteral(<string>lit) : H.mkNumberLiteral(<number>lit);
         let f = b.getFieldValue(p.field);
-        if (f != null)
+        if (f != null) {
+            if (p.fieldEditor === "checkbox") {
+                return H.mkBooleanLiteral(f === "TRUE");
+            }
+            else if (p.fieldEditor === "text") {
+                return H.mkStringLiteral(f);
+            }
             return mkText(f);
+        }
         else {
             attachPlaceholderIf(e, b, p.field);
             const target = getInputTargetBlock(b, p.field);
@@ -1146,6 +1153,14 @@ namespace pxt.blocks {
         // b.getFieldValue may be string, numbers
         const argb = getInputTargetBlock(b, arg);
         if (argb) return compileExpression(e, argb, comments);
+        const call = e.stdCallTable[b.type];
+        if (call) {
+            const stdArg: StdArg[] = call.args.filter(a => a.field === arg);
+            if (stdArg.length) {
+                return compileArgument(e, b, stdArg[0], comments);
+            }
+        }
+
         return mkText(b.getFieldValue(arg))
     }
 
@@ -1215,6 +1230,7 @@ namespace pxt.blocks {
     export interface StdArg {
         field?: string;
         literal?: string | number;
+        fieldEditor?: string;
     }
 
     // A description of each function from the "device library". Types are fetched
@@ -1390,7 +1406,16 @@ namespace pxt.blocks {
                     let fieldMap = pxt.blocks.parameterNames(fn);
                     let instance = fn.kind == pxtc.SymbolKind.Method || fn.kind == pxtc.SymbolKind.Property;
                     let args = (fn.parameters || []).map(p => {
-                        if (fieldMap[p.name] && fieldMap[p.name].name) return { field: fieldMap[p.name].name };
+                        if (fieldMap[p.name] && fieldMap[p.name].name) {
+                            const name = fieldMap[p.name].name;
+                            const element: StdArg = { field: name };
+
+                            if (fn.attributes.paramFieldEditor && (fn.attributes.paramFieldEditor[name] === "checkbox" || fn.attributes.paramFieldEditor[name] === "text")) {
+                                element.fieldEditor = fn.attributes.paramFieldEditor[name];
+                            }
+
+                            return element;
+                        }    
                         else return null;
                     }).filter(a => !!a);
 

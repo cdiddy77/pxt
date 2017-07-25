@@ -154,6 +154,8 @@ namespace ts.pxtc {
         paramFieldEditor?: pxt.Map<string>; //.fieldEditor
         paramShadowOptions?: pxt.Map<pxt.Map<string>>; //.shadowOptions.
         paramFieldEditorOptions?: pxt.Map<pxt.Map<string>>; //.fieldOptions.
+
+        externallyLoadedBlock?: boolean;
     }
 
     export interface LocationInfo {
@@ -337,7 +339,7 @@ namespace ts.pxtc {
     }
 
     const numberAttributes = ["weight", "imageLiteral"]
-    const booleanAttributes = ["advanced"]
+    const booleanAttributes = ["advanced", "externallyLoadedBlock"]
 
     export function parseCommentString(cmt: string): CommentAttrs {
         let res: CommentAttrs = {
