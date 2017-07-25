@@ -65,7 +65,13 @@ namespace pxt.Cloud {
 
     export function downloadMarkdownAsync(docid: string, locale?: string, live?: boolean): Promise<string> {
         docid = docid.replace(/^\//, "");
-        let url = `md/${pxt.appTarget.id}/${docid}?targetVersion=${encodeURIComponent(pxt.webConfig.targetVersion)}`;
+        let url: string;
+        if (pxt.webConfig.isStatic) {
+            url= `/${docid}.md?targetVersion=${encodeURIComponent(pxt.webConfig.targetVersion)}`;
+        }
+        else {
+            url = `md/${pxt.appTarget.id}/${docid}?targetVersion=${encodeURIComponent(pxt.webConfig.targetVersion)}`;
+        }
         if (locale != "en") {
             url += `&lang=${encodeURIComponent(Util.userLanguage())}`
             if (live) url += "&live=1"
@@ -81,6 +87,14 @@ namespace pxt.Cloud {
                     return privateGetTextAsync(url);
                 else return resp.text
             });
+        else if (pxt.webConfig.isStatic) {
+            return Util.requestAsync({
+                url: url,
+                headers: { "Authorization": Cloud.localToken },
+                method: "GET",
+                allowHttpErrors: true
+            }).then(resp => resp.text)
+        }
         else return privateGetTextAsync(url);
     }
 

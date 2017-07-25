@@ -1847,6 +1847,7 @@ function renderDocs(builtPackaged: string, localDir: string) {
             html = html.replace(/(<a[^<>]*)\shref="(\/[^<>"]*)"/g, (f, beg, url) => {
                 return beg + ` href="${webpath}docs${url}.html"`
             })
+            fs.writeFileSync(dd, buf);
             buf = new Buffer(html, "utf8")
             dd = dd.slice(0, dd.length - 3) + ".html"
         }
