@@ -185,25 +185,31 @@ namespace pxt.blocks {
         const check = b.outputConnection.check_ && b.outputConnection.check_.length ? b.outputConnection.check_[0] : "T";
 
         if (check === "Array") {
-            // The only block that hits this case should be lists_create_with, so we
-            // can safely infer the type from the first input that has a return type
-            let tp: Point;
-            if (b.inputList && b.inputList.length) {
-                for (const input of b.inputList) {
-                    if (input.connection && input.connection.targetBlock()) {
-                        let t = find(returnType(e, input.connection.targetBlock()))
-                        if (t) {
-                            if (t.parentType) {
-                                return t.parentType;
+            if (b.type === "lists_create_with") {
+                // The only block that hits this case should be lists_create_with, so we
+                // can safely infer the type from the first input that has a return type
+                let tp: Point;
+                if (b.inputList && b.inputList.length) {
+                    for (const input of b.inputList) {
+                        if (input.connection && input.connection.targetBlock()) {
+                            let t = find(returnType(e, input.connection.targetBlock()))
+                            if (t) {
+                                if (t.parentType) {
+                                    return t.parentType;
+                                }
+                                tp = ground(t.type + "[]");
+                                genericLink(tp, t);
+                                break;
                             }
-                            tp = ground(t.type + "[]");
-                            genericLink(tp, t);
-                            break;
                         }
                     }
                 }
+                return tp || ground("Array");
             }
-            return tp || ground("Array");
+            else if (e.stdCallTable[b.type]) {
+                const call = e.stdCallTable[b.type];
+                return ground(call.returnType);
+            }
         }
         else if (check === "T") {
             const func = e.stdCallTable[b.type];
@@ -1244,7 +1250,8 @@ namespace pxt.blocks {
         property?: boolean;
         namespace?: string;
         isIdentity?: boolean; // TD_ID shim
-    }
+        returnType?: string
+}
 
     function compileStatementBlock(e: Environment, b: B.Block): JsNode[] {
         let r: JsNode[];
@@ -1415,7 +1422,8 @@ namespace pxt.blocks {
                         imageLiteral: fn.attributes.imageLiteral,
                         hasHandler: fn.parameters && fn.parameters.some(p => (p.type == "() => void" || !!p.properties)),
                         property: !fn.parameters,
-                        isIdentity: fn.attributes.shim == "TD_ID"
+                        isIdentity: fn.attributes.shim == "TD_ID",
+                        returnType: fn.retType
                     }
                 })
         }
