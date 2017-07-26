@@ -110,7 +110,6 @@ namespace ts.pxtc {
         blockHidden?: boolean; // not available directly in toolbox
         blockImage?: boolean; // for enum variable, specifies that it should use an image from a predefined location
         handlerStmt?:boolean; // this block is meant to be used as a statement, but also contains handler function parameters
-        acceptArrays?:boolean; // if present, any parameters with types that end in '[]' also accept Array 
         fixedInstances?: boolean;
         fixedInstance?: boolean;
         indexedInstanceNS?: string;
