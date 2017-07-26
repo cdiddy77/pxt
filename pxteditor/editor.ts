@@ -190,6 +190,11 @@ namespace pxt.editor {
         validator?: any;
     }
 
+    export interface IBlockDefinition {
+        id: string;
+        init: () => void;
+        compiler?: pxt.blocks.BlockCompiler;
+    }
 
     export interface ExtensionOptions {
 
@@ -205,6 +210,7 @@ namespace pxt.editor {
         beforeCompile?: () => void;
         deployCoreAsync?: (resp: pxtc.CompileResult) => Promise<void>;
         fieldEditors?: IFieldCustomOptions[];
+        blockDefinitions?: IBlockDefinition[];
         toolboxOptions?: IToolboxOptions;
     }
 
