@@ -249,6 +249,8 @@ namespace ts.pxtc {
                 jsdocStrings[si.qName] = si.attributes.jsDoc;
             if (si.attributes.block)
                 locStrings[`${si.qName}|block`] = si.attributes.block;
+            if (si.attributes.group)
+                locStrings[`{id:group}${si.attributes.group}`] = si.attributes.group;
             if (si.parameters)
                 si.parameters.filter(pi => !!pi.description).forEach(pi => {
                     jsdocStrings[`${si.qName}|param|${pi.name}`] = pi.description;
@@ -925,7 +927,7 @@ namespace ts.pxtc.service {
                     if (functionSignature) {
                         return getFunctionString(functionSignature);
                     }
-                    return `() => {}`;
+                    return `function () {}`;
             }
 
             const type = checker ? checker.getTypeAtLocation(param) : undefined;
@@ -935,7 +937,7 @@ namespace ts.pxtc.service {
                     if (sigs.length) {
                         return getFunctionString(sigs[0]);
                     }
-                    return `() => {}`;
+                    return `function () {}`;
                 }
             }
             return "null";
@@ -964,7 +966,7 @@ namespace ts.pxtc.service {
             let displayPartsStr = ts.displayPartsToString(displayParts);
             functionArgument = displayPartsStr.substr(0, displayPartsStr.lastIndexOf(":"));
 
-            return `${functionArgument} => {\n    ${returnValue}\n}`
+            return `function ${functionArgument} {\n    ${returnValue}\n}`
         }
     }
 }

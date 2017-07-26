@@ -279,6 +279,7 @@ namespace ts.pxtc.decompiler {
 
     export interface DecompileBlocksOptions {
         snippetMode?: boolean; // do not emit "on start"
+        alwaysEmitOnStart?: boolean; // emit "on start" even if empty
     }
 
     export function decompileToBlocks(blocksInfo: pxtc.BlocksInfo, file: ts.SourceFile, options: DecompileBlocksOptions, renameMap?: RenameMap): pxtc.CompileResult {
@@ -794,6 +795,7 @@ ${output}</xml>`;
                         return getStatementBlock((node as ts.ExpressionStatement).expression, next, parent || node, asExpression, topLevel);
                     case SK.VariableStatement:
                         return codeBlock((node as ts.VariableStatement).declarationList.declarations, next, false, parent || node);
+                    case SK.FunctionExpression:
                     case SK.ArrowFunction:
                         return getArrowFunctionStatement(node as ts.ArrowFunction, next);
                     case SK.BinaryExpression:
@@ -1195,6 +1197,7 @@ ${output}</xml>`;
                 }
 
                 switch (e.kind) {
+                    case SK.FunctionExpression:
                     case SK.ArrowFunction:
                         const m = getDestructuringMutation(e as ArrowFunction);
                         if (m) {
@@ -1365,10 +1368,10 @@ ${output}</xml>`;
 
             eventStatements.map(n => getStatementBlock(n, undefined, undefined, false, topLevel)).forEach(emitStatementNode);
 
+            const emitOnStart = topLevel && !options.snippetMode;
             if (blockStatements.length) {
                 // wrap statement in "on start" if top level
                 const stmt = getStatementBlock(blockStatements.shift(), blockStatements, parent, false, topLevel);
-                const emitOnStart = topLevel && !options.snippetMode;
                 if (emitOnStart) {
                     // Preserve any variable edeclarations that were never used
                     let current = stmt;
@@ -1391,11 +1394,23 @@ ${output}</xml>`;
                             }]
                         } as StatementNode;
                     }
+                    else {
+                        maybeEmitEmptyOnStart();
+                    }
                 }
                 return stmt;
             }
+            else if (emitOnStart) {
+                maybeEmitEmptyOnStart();
+            }
 
             return undefined;
+        }
+
+        function maybeEmitEmptyOnStart() {
+            if (options.alwaysEmitOnStart) {
+                write(`<block type="${ts.pxtc.ON_START_TYPE}"></block>`);
+            }
         }
 
         /**
@@ -1431,7 +1446,7 @@ ${output}</xml>`;
                 if (match) {
                     const matched = match[1].trim()
 
-                    if (matched === ON_START_COMMENT) {
+                    if (matched === ON_START_COMMENT || matched === HANDLER_COMMENT) {
                         return;
                     }
 
@@ -1489,6 +1504,7 @@ ${output}</xml>`;
             case SK.PostfixUnaryExpression:
             case SK.PrefixUnaryExpression:
                 return checkIncrementorExpression(node as (ts.PrefixUnaryExpression | ts.PostfixUnaryExpression));
+            case SK.FunctionExpression:
             case SK.ArrowFunction:
                 return checkArrowFunction(node as ts.ArrowFunction);
             case SK.BinaryExpression:
@@ -1745,7 +1761,7 @@ ${output}</xml>`;
                     const arrayArg = info.args[info.args.length - 2] as ArrayLiteralExpression;
                     const callbackArg = info.args[info.args.length - 1] as ArrowFunction;
 
-                    if (arrayArg.kind === SK.ArrayLiteralExpression && callbackArg.kind === SK.ArrowFunction) {
+                    if (arrayArg.kind === SK.ArrayLiteralExpression && isFunctionExpression(callbackArg)) {
                         const propNames: string[] = [];
 
                         // Make sure that all elements in the array literal are enum values
@@ -1975,7 +1991,7 @@ ${output}</xml>`;
 
     function hasArrowFunction(info: CallInfo): boolean {
         const parameters = (info.decl as FunctionLikeDeclaration).parameters;
-        return info.args.some((arg, index) => arg && arg.kind === SK.ArrowFunction);
+        return info.args.some((arg, index) => arg && isFunctionExpression(arg));
     }
 
     function isLiteralNode(node: ts.Node): boolean {
@@ -2046,5 +2062,9 @@ ${output}</xml>`;
 
     function isBuiltinFieldEditor(type: string) {
         return type === "checkbox" || type === "text";
+    }
+
+    function isFunctionExpression(node: Node) {
+        return node.kind === SK.ArrowFunction || node.kind === SK.FunctionExpression;
     }
 }

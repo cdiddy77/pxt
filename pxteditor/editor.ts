@@ -42,6 +42,7 @@ namespace pxt.editor {
 
         running?: boolean;
         compiling?: boolean;
+        isSaving?: boolean;
         publishing?: boolean;
         hideEditorFloats?: boolean;
         collapseEditorTools?: boolean;
@@ -150,7 +151,7 @@ namespace pxt.editor {
         collapseSimulator(): void;
         toggleSimulatorCollapse(): void;
         proxySimulatorMessage(content: string): void;
-        toggleTrace(): void;
+        toggleTrace(intervalSpeed?: number): void;
 
         startTutorial(tutorialId: string): void;
 
@@ -220,6 +221,7 @@ namespace pxt.editor {
         maths?: MonacoToolboxCategoryDefinition;
         text?: MonacoToolboxCategoryDefinition;
         arrays?: MonacoToolboxCategoryDefinition;
+        functions?: MonacoToolboxCategoryDefinition;
     }
 
     export interface MonacoToolboxCategoryDefinition {
@@ -234,11 +236,26 @@ namespace pxt.editor {
         weight?: number;
 
         /**
+         * Whether or not the category should be placed in the advanced category
+         */
+        advanced?: boolean;
+
+        /**
+         * Whether or not the category should be removed
+         */
+        removed?: boolean;
+
+        /**
          * Blocks to appear in the category. Specifying this field will override
          * all existing blocks in the category. The ordering of the blocks is
          * determined by the ordering of this array.
          */
         blocks?: MonacoToolboxBlockDefinition[];
+
+        /**
+         * Whether or not to replace or append blocks
+         */
+        appendBlocks?: boolean;
     }
 
     export interface MonacoToolboxBlockDefinition {
@@ -252,6 +269,12 @@ namespace pxt.editor {
          * Snippet of code to insert when dragged into editor
          */
         snippet: string;
+
+        /**
+         * Group label used to categorize block.  Blocks are arranged with other
+         * blocks that share the same group.
+         */
+        group?: string,
 
         /**
          * Description of code to appear in the hover text

@@ -203,7 +203,7 @@ namespace pxt.blocks {
                     }
                 }
             }
-            return tp || ground("number[]");
+            return tp || ground("Array");
         }
         else if (check === "T") {
             const func = e.stdCallTable[b.type];
@@ -1152,7 +1152,7 @@ namespace pxt.blocks {
                 callbacks.push(mkGroup([argumentDeclaration, body]));
             }
             else {
-                callbacks.push(mkGroup([mkText("() =>"), body]));
+                callbacks.push(mkGroup([mkText("function ()"), body]));
             }
         }
 
@@ -1201,7 +1201,12 @@ namespace pxt.blocks {
             for (let i = 0; i < bodies.length; i++) {
                 const body = bodies[i];
                 const bBody = getInputTargetBlock(b, "HANDLER" + body.name);
-                bodyStmts.push(compileStatements(e, bBody));
+                let newBody = compileStatements(e, bBody);
+                
+                if (pxt.appTarget.compile && pxt.appTarget.compile.emptyEventHandlerComments && newBody.children.length === 0) {
+                    newBody.children.unshift(mkStmt(mkText(`// ${pxtc.HANDLER_COMMENT}`)))
+                }
+                bodyStmts.push(newBody);
             }
         } else {
             bodyStmts.push(compileStatements(e, getInputTargetBlock(b, "HANDLER")));
