@@ -1256,7 +1256,18 @@ ${output}</xml>`;
                                 defaultV = false;
                             }
                             else if (param.paramFieldEditorOptions && param.paramFieldEditorOptions['onParentBlock']) {
-                                (r.fields || (r.fields = [])).push(getField(vName, e.getText()));
+                                const f = (r.fields || (r.fields = []));
+                                if (param.paramFieldEditor === "checkbox") {
+                                    f.push(getField(vName, e.getText() === "true" ? "TRUE" : "FALSE"));
+                                }
+                                else if (param.paramFieldEditor === "text") {
+                                    const txt = e.getText();
+                                    
+                                    f.push(getField(vName, (e as ts.LiteralExpression).text));
+                                }
+                                else {
+                                    f.push(getField(vName, e.getText()));
+                                }
                                 return;
                             }
                         }
@@ -1703,6 +1714,7 @@ ${output}</xml>`;
                         return;
                     }
                     const paramInfo = api.parameters[instance ? i - 1 : i];
+                    const inf = params[i];
                     if (paramInfo.isEnum) {
                         if (e.kind === SK.PropertyAccessExpression) {
                             const enumName = (e as PropertyAccessExpression).expression as Identifier;
@@ -1713,9 +1725,13 @@ ${output}</xml>`;
                         fail = Util.lf("Enum arguments may only be literal property access expressions");
                         return;
                     }
-                    else if (isLiteralNode(e)) {
-                        const inf = params[i];
-                        if (inf.paramFieldEditor && (!inf.paramFieldEditorOptions || !inf.paramFieldEditorOptions["decompileLiterals"])) {
+                    else if (inf && inf.paramFieldEditor) {
+                        const isLiteral = isLiteralNode(e);
+                        if (isBuiltinFieldEditor(inf.paramFieldEditor) && !isLiteral) {
+                            fail = Util.lf("Builtin field editors may only take literal arguments")
+                            return;
+                        }
+                        else if (isLiteral && (!inf.paramFieldEditorOptions || !inf.paramFieldEditorOptions["decompileLiterals"])) {
                             fail = Util.lf("Field editor does not support literal arguments");
                         }
                     }
@@ -2042,6 +2058,10 @@ ${output}</xml>`;
 
             return res;
         });
+    }
+
+    function isBuiltinFieldEditor(type: string) {
+        return type === "checkbox" || type === "text";
     }
 
     function isFunctionExpression(node: Node) {
