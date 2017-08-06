@@ -414,9 +414,9 @@ namespace pxt.blocks {
                             const call = e.stdCallTable[b.type];
                             call.args.forEach((p: StdArg, i: number) => {
                                 const isInstance = call.isExtensionMethod && i === 0;
-                                if (p.field && !b.getFieldValue(p.field)) {
+                                if (p.field && b.getFieldValue(p.field) === null) {
                                     let i = b.inputList.filter((i: B.Input) => i.name == p.field)[0];
-                                    if (i.connection && i.connection.check_) {
+                                    if (i && i.connection && i.connection.check_) {
                                         if (isInstance && connectionCheck(i) === "Array") {
                                             let gen = handleGenericType(b, p.field);
                                             if (gen) {
@@ -1208,7 +1208,7 @@ namespace pxt.blocks {
                 const body = bodies[i];
                 const bBody = getInputTargetBlock(b, "HANDLER" + body.name);
                 let newBody = compileStatements(e, bBody);
-                
+
                 if (pxt.appTarget.compile && pxt.appTarget.compile.emptyEventHandlerComments && newBody.children.length === 0) {
                     newBody.children.unshift(mkStmt(mkText(`// ${pxtc.HANDLER_COMMENT}`)))
                 }
@@ -1280,7 +1280,7 @@ namespace pxt.blocks {
         namespace?: string;
         isIdentity?: boolean; // TD_ID shim
         returnType?: string
-}
+    }
 
     function compileStatementBlock(e: Environment, b: B.Block): JsNode[] {
         let r: JsNode[];
@@ -1440,7 +1440,7 @@ namespace pxt.blocks {
                             }
 
                             return element;
-                        }    
+                        }
                         else return null;
                     }).filter(a => !!a);
 
