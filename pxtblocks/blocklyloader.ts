@@ -338,11 +338,12 @@ namespace pxt.blocks {
         else {
             toolboxStyleBuffer += `
                 .blocklyTreeIcon.${className} {
-                    display: inline-block !important;
                     background-image: url("${pxt.webConfig.commitCdnUrl + encodeURI(i)}")!important;
-                    width: 1em;
-                    height: 1em;
-                    background-size: 1em!important;
+                    width: 30px;
+                    height: 100%;
+                    background-size: 20px !important;
+                    background-repeat: no-repeat !important;
+                    background-position: 50% 50% !important;
                 }
             `;
         }
@@ -358,10 +359,23 @@ namespace pxt.blocks {
         }
 
         if (toolboxStyle.sheet) {
-            toolboxStyle.textContent = toolboxStyleBuffer;
+            toolboxStyle.textContent = toolboxStyleBuffer + namespaceStyleBuffer;
         } else {
-            toolboxStyle.appendChild(document.createTextNode(toolboxStyleBuffer));
+            toolboxStyle.appendChild(document.createTextNode(toolboxStyleBuffer + namespaceStyleBuffer));
         }
+    }
+
+    let namespaceStyleBuffer: string = '';
+    export function appendNamespaceCss(namespace: string, color: string) {
+        const ns = namespace.toLowerCase();
+        color = color || '#dddddd'; // Default toolbox color
+        if (namespaceStyleBuffer.indexOf(ns) > -1) return;
+        namespaceStyleBuffer += `
+            span.docs.${ns} {
+                background-color: ${color} !important;
+                border-color: ${Blockly.PXTUtils.fadeColour(color, 0.2, true)} !important;
+            }
+        `;
     }
 
     let iconCanvasCache: Map<string> = {};
@@ -799,9 +813,8 @@ namespace pxt.blocks {
 
         // hook up/down if return value is void
         const hasHandlers = hasArrowFunction(fn);
-        const isStatement = fn.attributes.handlerStmt;
-        block.setPreviousStatement((!hasHandlers || isStatement) && fn.retType == "void");
-        block.setNextStatement((!hasHandlers || isStatement) && fn.retType == "void");
+        block.setPreviousStatement(!(hasHandlers && !fn.attributes.handlerStatement) && fn.retType == "void");
+        block.setNextStatement(!(hasHandlers && !fn.attributes.handlerStatement) && fn.retType == "void");
 
         block.setTooltip(fn.attributes.jsDoc);
     }
@@ -941,6 +954,8 @@ namespace pxt.blocks {
             for (let i = 0; i < cats.length; i++) {
                 cats[i].setAttribute('name',
                     Util.rlf(`{id:category}${cats[i].getAttribute('name')}`, []));
+                // Append Namespace CSS
+                appendNamespaceCss(cats[i].getAttribute('name'), cats[i].getAttribute('colour'));
             }
 
             // update category colors and add heading
@@ -993,10 +1008,11 @@ namespace pxt.blocks {
         // lf("{id:category}Loops")
         // lf("{id:category}Logic")
         // lf("{id:category}Variables")
-        // lf("{id:category}Arrays")
-        // lf("{id:category}Text")
         // lf("{id:category}Math")
         // lf("{id:category}Advanced")
+        // lf("{id:category}Functions")
+        // lf("{id:category}Arrays")
+        // lf("{id:category}Text")
         // lf("{id:category}Search")
         // lf("{id:category}More\u2026")
 
@@ -1674,13 +1690,18 @@ namespace pxt.blocks {
         const calculateDistance = (elemBounds: any, mouseX: any) => {
             return Math.floor(mouseX - (elemBounds.left + (elemBounds.width / 2)));
         }
+
         /**
-         * Track a drag of an object on this workspace.
-         * @param {!Event} e Mouse move event.
-         * @return {!goog.math.Coordinate} New location of object.
+         * Execute a step of block dragging, based on the given event.  Update the
+         * display accordingly.
+         * @param {!Event} e The most recent move event.
+         * @param {!goog.math.Coordinate} currentDragDeltaXY How far the pointer has
+         *     moved from the position at the start of the drag, in pixel units.
+         * @package
          */
-        let moveDrag = (<any>Blockly).WorkspaceSvg.prototype.moveDrag;
-        (<any>Blockly).WorkspaceSvg.prototype.moveDrag = function (e: any) {
+        const blockDrag = (<any>Blockly).BlockDragger.prototype.dragBlock;
+        (<any>Blockly).BlockDragger.prototype.dragBlock = function (e: any, currentDragDeltaXY: any) {
+            const blocklyToolboxDiv = document.getElementsByClassName('blocklyToolboxDiv')[0] as HTMLElement;
             const blocklyTreeRoot = document.getElementsByClassName('blocklyTreeRoot')[0] as HTMLElement;
             const trashIcon = document.getElementById("blocklyTrashIcon");
             if (blocklyTreeRoot && trashIcon) {
@@ -1690,27 +1711,35 @@ namespace pxt.blocks {
                     trashIcon.style.opacity = `${1 - opacity}`;
                     trashIcon.style.display = 'block';
                     blocklyTreeRoot.style.opacity = `${opacity}`;
+                    if (distance < 50) {
+                        blocklyToolboxDiv.classList.add('blocklyToolboxDeleting');
+                    }
                 } else {
                     trashIcon.style.display = 'none';
                     blocklyTreeRoot.style.opacity = '1';
+                    blocklyToolboxDiv.classList.remove('blocklyToolboxDeleting');
                 }
             }
-            return moveDrag.call(this, e);
+            return blockDrag.call(this, e, currentDragDeltaXY);
         };
 
         /**
-         * Stop binding to the global mouseup and mousemove events.
-         * @private
+         * Finish dragging the workspace and put everything back where it belongs.
+         * @param {!goog.math.Coordinate} currentDragDeltaXY How far the pointer has
+         *     moved from the position at the start of the drag, in pixel coordinates.
+         * @package
          */
-        let terminateDrag_ = (<any>Blockly).terminateDrag_;
-        (<any>Blockly).terminateDrag_ = function () {
+        const blockEndDrag = (<any>Blockly).BlockDragger.prototype.endBlockDrag;
+        (<any>Blockly).BlockDragger.prototype.endBlockDrag = function (e: any, currentDragDeltaXY: any) {
+            blockEndDrag.call(this, e, currentDragDeltaXY);
+            const blocklyToolboxDiv = document.getElementsByClassName('blocklyToolboxDiv')[0] as HTMLElement;
             const blocklyTreeRoot = document.getElementsByClassName('blocklyTreeRoot')[0] as HTMLElement;
             const trashIcon = document.getElementById("blocklyTrashIcon");
             if (trashIcon) {
                 trashIcon.style.display = 'none';
                 blocklyTreeRoot.style.opacity = '1';
+                blocklyToolboxDiv.classList.remove('blocklyToolboxDeleting');
             }
-            terminateDrag_.call(this);
         }
     }
 
@@ -1852,7 +1881,7 @@ namespace pxt.blocks {
                 enabled: true,
                 callback: () => {
                     pxt.tickEvent("blocks.context.format");
-                    pxt.blocks.layout.flow(this);
+                    pxt.blocks.layout.flow(this, { useViewWidth: true });
                 }
             }
             menuOptions.push(formatCodeOption);
@@ -2448,13 +2477,15 @@ namespace pxt.blocks {
         msg.VARIABLES_GET_CREATE_SET = variablesGetDef.block["VARIABLES_GET_CREATE_SET"];
         installBuiltinHelpInfo(variablesGetId);
 
+        // Dropdown menu of variables_get
+        msg.RENAME_VARIABLE = lf("Rename variable...");
+        msg.DELETE_VARIABLE = lf("Delete the \"%1\" variable");
+
         // builtin variables_set
         const variablesSetId = "variables_set";
         const variablesSetDef = pxt.blocks.getBlockDefinition(variablesSetId);
         msg.VARIABLES_SET = variablesSetDef.block["VARIABLES_SET"];
         msg.VARIABLES_DEFAULT_NAME = varname;
-        //XXX Do not translate the default variable name.
-        //XXX Variable names with Unicode character are harmful at this point.
         msg.VARIABLES_SET_CREATE_GET = lf("Create 'get %1'");
         installBuiltinHelpInfo(variablesSetId);
 

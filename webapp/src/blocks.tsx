@@ -185,10 +185,8 @@ export class Editor extends srceditor.Editor {
         });
 
         if (needsLayout) {
-            const metrics = this.editor.getMetrics();
             // If the blocks file has no location info (e.g. it's from the decompiler), format the code.
-            // Only limit the width if the editor is in portrait
-            pxt.blocks.layout.flow(this.editor, metrics.viewWidth < metrics.viewHeight ? { maxWidth: metrics.viewWidth } : undefined);
+            pxt.blocks.layout.flow(this.editor, { useViewWidth: true });
         }
         else {
             // Otherwise translate the blocks so that they are positioned on the top left
@@ -211,9 +209,12 @@ export class Editor extends srceditor.Editor {
          * @param {function()=} opt_callback The callback when the alert is dismissed.
          */
         Blockly.alert = function (message, opt_callback) {
-            return core.dialogAsync({
+            return core.confirmAsync({
                 hideCancel: true,
                 header: lf("Alert"),
+                agreeLbl: lf("Ok"),
+                agreeClass: "positive",
+                agreeIcon: "checkmark",
                 body: message,
                 size: "small"
             }).then(() => {
@@ -390,9 +391,6 @@ export class Editor extends srceditor.Editor {
         let blocklyOptions = this.getBlocklyOptions(showCategories);
         Util.jsonMergeFrom(blocklyOptions, pxt.appTarget.appTheme.blocklyOptions || {});
         this.editor = Blockly.inject(blocklyDiv, blocklyOptions);
-        // zoom out on mobile by default
-        if (pxt.BrowserUtils.isMobile())
-            this.editor.zoomCenter(-4);
         this.editor.addChangeListener((ev) => {
             Blockly.Events.disableOrphans(ev);
             if (ev.type != 'ui') {
@@ -408,6 +406,7 @@ export class Editor extends srceditor.Editor {
                 pxt.tickActivity("blocks.create", "blocks.create." + blockId);
                 if (ev.xml.tagName == 'SHADOW')
                     this.cleanUpShadowBlocks();
+                this.parent.setState({ hideEditorFloats: false });
             }
             if (ev.type == 'ui') {
                 if (ev.element == 'category') {
@@ -639,7 +638,8 @@ export class Editor extends srceditor.Editor {
                 wheel: true,
                 maxScale: 2.5,
                 minScale: .2,
-                scaleSpeed: 1.05
+                scaleSpeed: 1.05,
+                startScale: pxt.BrowserUtils.isMobile() ? 1.2 : 1.0
             },
             rtl: Util.isUserLanguageRtl()
         };
