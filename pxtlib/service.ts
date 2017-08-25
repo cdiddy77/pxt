@@ -110,7 +110,6 @@ namespace ts.pxtc {
         blockAllowMultiple?: boolean; // override single block behavior for events
         blockHidden?: boolean; // not available directly in toolbox
         blockImage?: boolean; // for enum variable, specifies that it should use an image from a predefined location
-        handlerStmt?:boolean; // this block is meant to be used as a statement, but also contains handler function parameters
         fixedInstances?: boolean;
         fixedInstance?: boolean;
         indexedInstanceNS?: string;
